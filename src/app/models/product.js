@@ -9,4 +9,4 @@ class Product extends Model {
   }
 }
 
-module.exports = Product
+module.exports = new Product

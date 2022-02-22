@@ -7,28 +7,23 @@ class Model {
     this.table = ''
     this.fillable = []
     this.hidden = []
-    this.instance = true
     this.results = null
+    this.selectList = []
+    this.whereList = []
   }
 
-  static async create(data) {
-    let self
-    if (!this.instance) {
-      self = new this.prototype.constructor()
-    } else {
-      self = this
-    }
+  async create(data) {
     const fields = []
     const values = []
     for (const field of Object.keys(data)) {
-      if (self.fillable.includes(field)) {
+      if (this.fillable.includes(field)) {
         fields.push(field)
         values.push(data[field])
       }
     }
-    const query = `INSERT INTO ${self.table} ( ?? ) VALUES ( ? )`
-    self.results = await self.exec(query, [fields, values])
-    return await self.find(self.results.insertId)
+    const query = `INSERT INTO ${this.table} ( ?? ) VALUES ( ? )`
+    this.results = await this.exec(query, [fields, values])
+    return await this.find(this.results.insertId)
   }
 
   async find(id) {
@@ -40,52 +35,59 @@ class Model {
     return null
   }
 
-  static async find(id) {
-    let self
-    if (!this.instance) {
-      self = new this.prototype.constructor()
-    } else {
-      self = this
+  where(v1, v2, v3) {
+    this.whereList = []
+    let field, type, value
+    if (Array.isArray(v1)) {
+      v1.forEach(item => {
+        field = item[0]
+        type = (item.length > 2) ? item[1] : '='
+        value = (item.length > 2) ? item[2] : item[1]
+        this.whereList.push({ field, type, value })
+      })
+      return this
     }
-    const query = `SELECT * FROM ${self.table} WHERE ?? = ?`
-    self.results = await self.exec(query, [self.primaryKey, id])
-    if (self.results.length) {
-      return self.results[0]
+    field = v1
+    type = (v3 === undefined) ? '=' : v2
+    value = (v3 === undefined) ? v2 : v3
+    this.whereList.push({ field, type, value })
+    return this
+  }
+
+  async get() {
+    const select = this.selectList.length 
+      ? this.selectList.join(', ') 
+      : '*'
+    const where = this.whereList.length 
+      ? `WHERE ${this.whereList.map(item => `?? ${item.type} ?`).join(', ')}` 
+      : ''
+    let query = `SELECT ${select} FROM ${this.table} ${where}`
+    this.results = await this.exec(query, [this.whereList.map(item => item.field), ...this.whereList.map(item => item.value)])
+    if (this.results.length) {
+      return this.results
     }
     return null
   }
 
-  static async all() {
-    let self
-    if (!this.instance) {
-      self = new this.prototype.constructor()
-    } else {
-      self = this
-    }
-    const query = `SELECT * FROM ${self.table}`
-    self.results = await self.exec(query, [])
-    return self.results
+  async all() {    
+    const query = `SELECT * FROM ${this.table}`
+    this.results = await this.exec(query, [])
+    return this.results
   }
 
-  async update(data) {
-    let self
-    if (!this.instance) {
-      self = new this.prototype.constructor()
-    } else {
-      self = this
-    }
+  async update(data) {    
     const fields = []
     const values = []
     for (const field of Object.keys(data)) {
-      if (self.fillable.includes(field)) {
+      if (this.fillable.includes(field)) {
         fields.push(field)
         values.push(data[field])
       }
     }
-    fields.push(self.primaryKey)
-    values.push(self.primaryValue)
-    const query = `UPDATE ${self.table} SET ?? = ? WHERE ?? = ?`
-    await self.exec(query, [fields, values])
+    fields.push(this.primaryKey)
+    values.push(this.primaryValue)
+    const query = `UPDATE ${this.table} SET ?? = ? WHERE ?? = ?`
+    return await this.exec(query, [fields, values])
   }
 
   exec(query, data) {

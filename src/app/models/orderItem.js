@@ -9,4 +9,4 @@ class OrderItem extends Model {
   }
 }
 
-module.exports = OrderItem
+module.exports = new OrderItem
