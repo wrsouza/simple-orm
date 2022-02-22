@@ -30,7 +30,7 @@ class Model {
     const query = `SELECT * FROM ${this.table} WHERE ?? = ?`
     this.results = await this.exec(query, [this.primaryKey, id])
     if (this.results.length) {
-      return this.results[0]
+      return this.filterAllowedFields(this.results[0])
     }
     return null
   }
@@ -64,7 +64,7 @@ class Model {
     let query = `SELECT ${select} FROM ${this.table} ${where}`
     this.results = await this.exec(query, [this.whereList.map(item => item.field), ...this.whereList.map(item => item.value)])
     if (this.results.length) {
-      return this.results
+      return this.filterAllowedFields(this.results)
     }
     return null
   }
@@ -72,7 +72,7 @@ class Model {
   async all() {    
     const query = `SELECT * FROM ${this.table}`
     this.results = await this.exec(query, [])
-    return this.results
+    return this.filterAllowedFields(this.results)
   }
 
   async update(data) {    
@@ -102,6 +102,30 @@ class Model {
           })
         })
     })
+  }
+
+  filterAllowedFields(result) {
+    let allowedItem
+    if (Array.isArray(result)) {
+      const allowedList = []
+      result.forEach(item => {
+        allowedItem = {}
+        Object.keys(item).forEach(key => {
+          if (!this.hidden.includes(key)) {
+            allowedItem[key] = item[key]
+          }
+        })
+        allowedList.push(allowedItem)
+      })
+      return allowedList
+    }
+    allowedItem = {}
+    Object.keys(result).forEach(key => {
+      if (!this.hidden.includes(key)) {
+        allowedItem[key] = result[key]
+      }
+    })
+    return allowedItem
   }
 }
 
